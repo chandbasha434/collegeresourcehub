@@ -556,9 +556,9 @@ export class DatabaseStorage implements IStorage {
       
       // Count active users (users who uploaded at least one resource)
       const [activeUsersResult] = await db
-        .select({ count: count() })
-        .from(users)
-        .innerJoin(resources, eq(users.id, resources.uploadedById));
+        .select({ count: sql<number>`COUNT(DISTINCT ${resources.uploadedById})` })
+        .from(resources)
+        .where(eq(resources.isActive, true));
       
       return {
         totalUsers: userCountResult?.count || 0,

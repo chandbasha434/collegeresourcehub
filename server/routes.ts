@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { z } from "zod";
 import { 
   insertResourceSchema, 
   insertRatingSchema, 
@@ -547,14 +548,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/admin/resources/:id/status', isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const { isActive } = req.body;
+      
+      // Validate request body with Zod
+      const statusUpdateSchema = z.object({
+        isActive: z.boolean()
+      });
+      
+      const validation = statusUpdateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid request data", 
+          errors: validation.error.errors 
+        });
+      }
+      
+      const { isActive } = validation.data;
       
       const resource = await storage.getResource(id);
       if (!resource) {
         return res.status(404).json({ message: "Resource not found" });
       }
       
-      const updatedResource = await storage.updateResource(id, { isActive: !!isActive });
+      const updatedResource = await storage.updateResource(id, { isActive });
       res.json(updatedResource);
     } catch (error) {
       console.error("Error updating resource status:", error);
