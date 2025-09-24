@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 // Components
@@ -94,6 +97,30 @@ const mockResources = [
   }
 ];
 
+interface Resource {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  semester: string | null;
+  fileType: string;
+  fileName: string;
+  fileSize: number;
+  filePath: string;
+  uploadedById: string;
+  downloadCount: number | null;
+  averageRating: string | null;
+  ratingCount: number | null;
+  isActive: boolean | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  uploadedBy?: {
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+  };
+}
+
 function BrowseResources() {
   const [filters, setFilters] = useState({
     query: '',
@@ -124,7 +151,7 @@ function BrowseResources() {
     },
   });
 
-  const handleSearch = (newFilters: any) => {
+  const handleSearch = (newFilters: typeof filters) => {
     console.log("Updating filters:", newFilters);
     setFilters({
       query: newFilters.query || '',
@@ -170,7 +197,7 @@ function BrowseResources() {
           </div>
         ) : resources && resources.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {resources.map((resource) => (
+            {resources.map((resource: Resource) => (
               <ResourceCard key={resource.id} resource={resource} />
             ))}
           </div>
@@ -231,7 +258,7 @@ function MyResources({ user }: { user: any }) {
         </div>
       ) : userResources && userResources.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {userResources.map((resource) => (
+          {userResources.map((resource: Resource) => (
             <ResourceCard key={resource.id} resource={resource} />
           ))}
         </div>
@@ -326,7 +353,7 @@ function AuthenticatedApp({ user }: { user: any }) {
   const getUserInitials = () => {
     const displayName = getUserDisplayName();
     return displayName.split(' ')
-      .map(name => name[0])
+      .map((name: string) => name[0])
       .join('')
       .toUpperCase()
       .slice(0, 2) || "U";

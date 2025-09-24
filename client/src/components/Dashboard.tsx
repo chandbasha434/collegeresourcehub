@@ -9,15 +9,17 @@ export default function Dashboard() {
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/stats'],
+    queryFn: () => fetch('/api/stats').then(res => res.json()),
   });
 
   // Fetch recent resources (limit to 6 for dashboard)
   const { data: recentResources, isLoading: resourcesLoading } = useQuery({
     queryKey: ['/api/resources', { limit: 6, sortBy: 'newest' }],
+    queryFn: () => fetch('/api/resources?limit=6&sortBy=newest').then(res => res.json()),
   });
 
   // Transform stats data for display
-  const dashboardStats = stats ? [
+  const dashboardStats = (stats && typeof stats === 'object') ? [
     { 
       title: "Total Resources", 
       value: stats.totalResources?.toString() || "0", 
@@ -130,8 +132,8 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ))
-          ) : recentResources && recentResources.length > 0 ? (
-            recentResources.map((resource) => (
+          ) : recentResources && Array.isArray(recentResources) && recentResources.length > 0 ? (
+            recentResources.map((resource: any) => (
               <ResourceCard key={resource.id} resource={resource} />
             ))
           ) : (

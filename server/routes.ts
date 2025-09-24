@@ -211,8 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid resource data", errors: error.errors });
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid resource data", errors: (error as any).errors });
       }
       
       res.status(500).json({ message: "Failed to create resource" });
