@@ -141,7 +141,7 @@ function BrowseResources() {
 
 function Favorites({ user }: { user: any }) {
   // Fetch user's favorite resources
-  const { data: favorites, isLoading, error } = useQuery({
+  const { data: favorites, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/users/me/favorites', user?.id],
     queryFn: async () => {
       const res = await fetch('/api/users/me/favorites', {
@@ -167,7 +167,7 @@ function Favorites({ user }: { user: any }) {
           <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">Failed to load favorites</h3>
           <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" onClick={() => refetch()} data-testid="button-retry-favorites">
             Try Again
           </Button>
         </div>

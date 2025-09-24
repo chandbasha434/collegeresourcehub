@@ -278,8 +278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/resources/:id/download - Increment download count
-  app.post('/api/resources/:id/download', async (req, res) => {
+  // GET /api/resources/:id/download - Download file and increment download count
+  app.get('/api/resources/:id/download', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
       
@@ -289,13 +289,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Resource not found" });
       }
       
+      // Check if file exists on filesystem
+      if (!fs.existsSync(resource.filePath)) {
+        console.error(`File not found on filesystem: ${resource.filePath}`);
+        return res.status(404).json({ message: "File not found on server" });
+      }
+      
+      // Increment download count
       await storage.incrementDownloadCount(id);
-      res.json({ message: "Download count updated" });
+      
+      // Use res.download for secure file serving with proper header handling
+      res.download(resource.filePath, resource.fileName, (error) => {
+        if (error) {
+          console.error('Error downloading file:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ message: "Error downloading file" });
+          }
+        }
+      });
     } catch (error) {
-      console.error("Error updating download count:", error);
-      res.status(500).json({ message: "Failed to update download count" });
+      console.error("Error downloading file:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to download file" });
+      }
     }
   });
+  
 
   // Rating Routes
 
