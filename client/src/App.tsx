@@ -348,7 +348,12 @@ function AuthenticatedApp({ user }: { user: any }) {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar onNavigate={(path) => window.location.pathname = path} />
+        <AppSidebar 
+          onNavigate={(path) => window.location.pathname = path}
+          userName={getUserDisplayName()}
+          userInitials={getUserInitials()}
+          userMajor={user?.major || "Student"}
+        />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header 
             theme={theme}

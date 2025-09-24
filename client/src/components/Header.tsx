@@ -38,8 +38,8 @@ export default function Header({
   onThemeToggle,
   onLogout,
   theme = "light",
-  userName = "John Doe",
-  userInitials = "JD",
+  userName = "User",
+  userInitials = "U",
   notificationCount = 3
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -147,7 +147,7 @@ export default function Header({
                     {userName}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    Computer Science Student
+                    Student
                   </p>
                 </div>
               </DropdownMenuLabel>

@@ -81,9 +81,18 @@ const subjects = [
 interface AppSidebarProps {
   activeItem?: string;
   onNavigate?: (path: string) => void;
+  userName?: string;
+  userInitials?: string;
+  userMajor?: string;
 }
 
-export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarProps) {
+export default function AppSidebar({ 
+  activeItem = "/", 
+  onNavigate, 
+  userName = "User", 
+  userInitials = "U", 
+  userMajor = "Student" 
+}: AppSidebarProps) {
   const handleNavigation = (url: string) => {
     console.log("Navigating to:", url);
     onNavigate?.(url);
@@ -193,14 +202,14 @@ export default function AppSidebar({ activeItem = "/", onNavigate }: AppSidebarP
           {/* User Profile */}
           <div className="flex items-center space-x-3 p-2 rounded-lg bg-sidebar-accent">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">JD</AvatarFallback>
+              <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground" data-testid="user-name">
-                John Doe
+                {userName}
               </p>
               <p className="text-xs text-muted-foreground" data-testid="user-status">
-                Computer Science
+                {userMajor}
               </p>
             </div>
           </div>
