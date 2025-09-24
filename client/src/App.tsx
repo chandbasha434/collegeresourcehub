@@ -7,7 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Upload } from "lucide-react";
+import { BookOpen, Upload, AlertCircle } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
 // Components
@@ -138,6 +139,79 @@ function BrowseResources() {
   );
 }
 
+function Favorites({ user }: { user: any }) {
+  // Fetch user's favorite resources
+  const { data: favorites, isLoading, error } = useQuery({
+    queryKey: ['/api/users/me/favorites', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/users/me/favorites', {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch favorites: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    },
+    enabled: !!user?.id, // Only fetch if user is authenticated
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-medium text-foreground">Favorites</h1>
+        <p className="text-muted-foreground">Resources you've saved for later</p>
+      </div>
+      
+      {error ? (
+        <div className="text-center py-12" data-testid="favorites-error-state">
+          <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Failed to load favorites</h3>
+          <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      ) : isLoading ? (
+        // Loading skeleton
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="favorites-loading-skeleton">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="hover-elevate">
+              <CardHeader>
+                <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-4 w-full bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : favorites && Array.isArray(favorites) && favorites.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="favorites-grid">
+          {favorites.map((resource: Resource) => (
+            <ResourceCard key={resource.id} resource={resource} data-testid={`favorite-resource-${resource.id}`} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12" data-testid="favorites-empty-state">
+          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">No favorite resources yet.</p>
+          <p className="text-sm text-muted-foreground mt-2">Star resources to save them here.</p>
+          <Link href="/browse">
+            <Button className="mt-4" data-testid="browse-resources-button">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Browse Resources
+            </Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MyResources({ user }: { user: any }) {
   // Fetch user's own resources
   const { data: userResources, isLoading } = useQuery({
@@ -217,16 +291,7 @@ function AuthenticatedRouter({ user }: { user: any }) {
         <MyResources user={user} />
       </Route>
       <Route path="/favorites">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-medium text-foreground">Favorites</h1>
-            <p className="text-muted-foreground">Resources you've saved for later</p>
-          </div>
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No favorite resources yet.</p>
-            <p className="text-sm text-muted-foreground mt-2">Star resources to save them here.</p>
-          </div>
-        </div>
+        <Favorites user={user} />
       </Route>
       <Route component={NotFound} />
     </Switch>
