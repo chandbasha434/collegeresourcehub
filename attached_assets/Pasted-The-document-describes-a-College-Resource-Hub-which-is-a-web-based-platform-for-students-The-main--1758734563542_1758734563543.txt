@@ -1,0 +1,110 @@
+The document describes a College Resource Hub, which is a web-based platform for students.
+The main idea: a centralized place where students can upload, share, and access study resources like notes, past exam papers, and study guides.
+
+🎯 Core Objectives
+
+The project has 4 main goals:
+
+Structured Repository
+
+Create a properly organized library of resources.
+
+Easy to navigate and contribute.
+
+Advanced Categorization
+
+Use tagging & categorization by subject and semester.
+
+Help students find what they need quickly.
+
+Quality Assessment
+
+Students can rate resources.
+
+High-quality and useful materials will appear at the top.
+
+Collaborative Learning
+
+Encourage peer-to-peer sharing.
+
+Build a community-driven knowledge base.
+
+🌟 Key Features & Functionalities
+
+Secure Authentication
+
+Login system with roles (students, admins).
+
+JWT-based authentication for security.
+
+Resource Management
+
+Upload/download study notes, past papers, and guides.
+
+File validation to ensure correct formats.
+
+Rating & Feedback System
+
+Students can give ratings and reviews.
+
+Helps improve the quality of uploaded materials.
+
+Smart Dashboard
+
+Shows top-rated resources, most downloaded ones.
+
+Gives personalized recommendations based on user activity.
+
+🛠️ Recommended Technology Stack
+
+Frontend: React.js (for responsive, modern UI).
+
+Backend:
+
+Option 1: Express.js + MongoDB
+
+Option 2: FastAPI/Flask + PostgreSQL
+
+Authentication: JWT (JSON Web Token) for secure login.
+
+📦 Project Deliverables
+
+By the end of the project, you should deliver:
+
+Full-Stack Application
+
+Complete working web app (React + backend).
+
+Core Features
+
+Authentication, resource upload/download, user management.
+
+Advanced Functionality
+
+Tagging system, smart search, ratings.
+
+Documentation
+
+Setup instructions, API docs, project report.
+
+📝 Evaluation Criteria (How You’ll Be Graded)
+
+25% Code Quality – clean, structured, readable code.
+
+30% Feature Implementation – upload, tagging, rating working correctly.
+
+20% UI/UX Design – good user interface & navigation.
+
+15% Database Design – efficient structure & queries.
+
+10% Documentation – clarity & completeness of docs.
+
+📌 Submission
+
+Push your complete project to a public GitHub repo.
+
+Send source code + documentation + repo link to: support@leadmasters.ai
+.
+
+✅ In short:
+You need to build a full-stack platform where students can securely log in, upload & download study resources, categorize them by subject/semester, rate them, and use a smart dashboard. The project is evaluated on code, features, UI, database, and documentation
