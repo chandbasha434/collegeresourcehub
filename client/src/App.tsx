@@ -23,6 +23,8 @@ import ResourceCard from "./components/ResourceCard";
 import AppSidebar from "./components/AppSidebar";
 import Header from "./components/Header";
 import Settings from "./components/Settings";
+import TopContributors from "./components/TopContributors";
+import Trending from "./components/Trending";
 import NotFound from "@/pages/not-found";
 
 
@@ -298,6 +300,12 @@ function AuthenticatedRouter({ user }: { user: any }) {
       </Route>
       <Route path="/settings">
         <Settings user={user} />
+      </Route>
+      <Route path="/contributors">
+        <TopContributors />
+      </Route>
+      <Route path="/trending">
+        <Trending />
       </Route>
       <Route component={NotFound} />
     </Switch>
