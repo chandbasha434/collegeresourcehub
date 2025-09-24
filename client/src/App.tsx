@@ -1,4 +1,6 @@
 import { useState } from "react";
+import React from "react";
+import { ThemeProvider, useTheme } from "./components/ThemeProvider";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -308,13 +310,7 @@ function UnauthenticatedRouter() {
 }
 
 function AuthenticatedApp({ user }: { user: any }) {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
-  };
+  const { theme, toggleTheme } = useTheme();
 
   // Custom sidebar width
   const style = {
@@ -394,10 +390,12 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AppContent />
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

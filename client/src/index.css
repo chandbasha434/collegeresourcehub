@@ -123,86 +123,96 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255,255,255, .12);
+  --badge-outline: rgba(255,255,255, .06);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 8;  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255,255,255, .05);
+  --elevate-2: rgba(255,255,255, .10);
 
-  --background: 220 8% 8%;
+  /* Sophisticated dark grey base - deeper and more refined */
+  --background: 222 8% 7%;
 
-  --foreground: 220 8% 95%;
+  --foreground: 220 12% 92%;
 
-  --border: 220 8% 18%;
+  --border: 222 8% 18%;
 
-  --card: 220 8% 12%;
+  /* Enhanced card system with better elevation */
+  --card: 222 8% 11%;
 
-  --card-foreground: 220 8% 95%;
+  --card-foreground: 220 12% 92%;
 
-  --card-border: 220 8% 16%;
+  --card-border: 222 8% 16%;
 
-  --sidebar: 220 8% 10%;
+  /* Refined sidebar with subtle contrast */
+  --sidebar: 222 8% 9%;
 
-  --sidebar-foreground: 220 8% 95%;
+  --sidebar-foreground: 220 12% 92%;
 
-  --sidebar-border: 220 8% 14%;
+  --sidebar-border: 222 8% 14%;
 
-  --sidebar-primary: 210 85% 55%;
+  /* Neutral light grey primary for excellent contrast */
+  --sidebar-primary: 220 6% 88%;
 
-  --sidebar-primary-foreground: 220 8% 98%;
+  --sidebar-primary-foreground: 222 8% 7%;
 
-  --sidebar-accent: 220 8% 16%;
+  --sidebar-accent: 222 8% 16%;
 
-  --sidebar-accent-foreground: 220 8% 85%;
+  --sidebar-accent-foreground: 220 12% 85%;
 
-  --sidebar-ring: 210 85% 55%;
+  --sidebar-ring: 210 90% 56%;
 
-  --popover: 220 8% 14%;
+  /* Improved popover contrast */
+  --popover: 222 8% 14%;
 
-  --popover-foreground: 220 8% 95%;
+  --popover-foreground: 220 12% 92%;
 
-  --popover-border: 220 8% 20%;
+  --popover-border: 222 8% 20%;
 
-  --primary: 210 85% 55%;
+  /* Refined primary color - neutral light grey for sophistication */
+  --primary: 220 6% 88%;
 
-  --primary-foreground: 220 8% 98%;
+  --primary-foreground: 222 8% 7%;
 
-  --secondary: 220 8% 18%;
+  /* Enhanced secondary and muted colors */
+  --secondary: 222 8% 16%;
 
-  --secondary-foreground: 220 8% 85%;
+  --secondary-foreground: 220 12% 85%;
 
-  --muted: 220 8% 16%;
+  --muted: 222 8% 14%;
 
-  --muted-foreground: 220 8% 70%;
+  --muted-foreground: 220 10% 70%;
 
-  --accent: 220 8% 18%;
+  --accent: 222 8% 18%;
 
-  --accent-foreground: 220 8% 85%;
+  --accent-foreground: 220 12% 85%;
 
   --destructive: 0 84% 60%;
 
-  --destructive-foreground: 220 8% 98%;
+  --destructive-foreground: 220 12% 98%;
 
-  /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: 220 8% 24%;
-  --ring: 210 85% 55%;
-  --chart-1: 210 85% 65%;
-  --chart-2: 142 76% 55%;
-  --chart-3: 38 92% 60%;
-  --chart-4: 280 75% 65%;
-  --chart-5: 15 85% 65%;
+  /* Enhanced input contrast for better visibility */
+  --input: 222 8% 24%;
+  --ring: 210 90% 56%;
+  
+  /* Adjusted chart colors for better contrast on dark backgrounds */
+  --chart-1: 210 85% 70%;
+  --chart-2: 142 76% 60%;
+  --chart-3: 38 92% 65%;
+  --chart-4: 280 75% 70%;
+  --chart-5: 15 85% 60%;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(220 8% 0% / 0.20);
-  --shadow-xs: 0px 2px 0px 0px hsl(220 8% 0% / 0.25);
-  --shadow-sm: 0px 2px 0px 0px hsl(220 8% 0% / 0.30), 0px 1px 2px -1px hsl(220 8% 0% / 0.20);
-  --shadow: 0px 2px 0px 0px hsl(220 8% 0% / 0.35), 0px 1px 2px -1px hsl(220 8% 0% / 0.25);
-  --shadow-md: 0px 2px 0px 0px hsl(220 8% 0% / 0.40), 0px 2px 4px -1px hsl(220 8% 0% / 0.30);
-  --shadow-lg: 0px 2px 0px 0px hsl(220 8% 0% / 0.45), 0px 4px 6px -1px hsl(220 8% 0% / 0.35);
-  --shadow-xl: 0px 2px 0px 0px hsl(220 8% 0% / 0.50), 0px 8px 10px -1px hsl(220 8% 0% / 0.40);
-  --shadow-2xl: 0px 2px 0px 0px hsl(220 8% 0% / 0.60);
+  /* Enhanced shadows for better depth */
+  --shadow-2xs: 0px 2px 0px 0px hsl(222 8% 0% / 0.25);
+  --shadow-xs: 0px 2px 0px 0px hsl(222 8% 0% / 0.30);
+  --shadow-sm: 0px 2px 0px 0px hsl(222 8% 0% / 0.35), 0px 1px 2px -1px hsl(222 8% 0% / 0.25);
+  --shadow: 0px 2px 0px 0px hsl(222 8% 0% / 0.40), 0px 1px 2px -1px hsl(222 8% 0% / 0.30);
+  --shadow-md: 0px 2px 0px 0px hsl(222 8% 0% / 0.45), 0px 2px 4px -1px hsl(222 8% 0% / 0.35);
+  --shadow-lg: 0px 2px 0px 0px hsl(222 8% 0% / 0.50), 0px 4px 6px -1px hsl(222 8% 0% / 0.40);
+  --shadow-xl: 0px 2px 0px 0px hsl(222 8% 0% / 0.55), 0px 8px 10px -1px hsl(222 8% 0% / 0.45);
+  --shadow-2xl: 0px 2px 0px 0px hsl(222 8% 0% / 0.65);
 
 }
 
