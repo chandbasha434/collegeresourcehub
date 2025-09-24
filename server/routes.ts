@@ -58,6 +58,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+  
+  // Admin middleware - checks if user is an admin
+  const isAdmin = async (req: any, res: any, next: any) => {
+    try {
+      if (!req.user || !req.user.claims || !req.user.claims.sub) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      next();
+    } catch (error) {
+      console.error("Error in admin middleware:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -495,6 +516,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error removing tag from resource:", error);
       res.status(500).json({ message: "Failed to remove tag from resource" });
+    }
+  });
+
+  // Admin Routes
+  
+  // GET /api/admin/users - Get all users (admin only)
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // GET /api/admin/resources - Get all resources (admin only)
+  app.get('/api/admin/resources', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const resources = await storage.getAllResources();
+      res.json(resources);
+    } catch (error) {
+      console.error("Error fetching admin resources:", error);
+      res.status(500).json({ message: "Failed to fetch admin resources" });
+    }
+  });
+  
+  // PUT /api/admin/resources/:id/status - Toggle resource active status (admin only)
+  app.put('/api/admin/resources/:id/status', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      const resource = await storage.getResource(id);
+      if (!resource) {
+        return res.status(404).json({ message: "Resource not found" });
+      }
+      
+      const updatedResource = await storage.updateResource(id, { isActive: !!isActive });
+      res.json(updatedResource);
+    } catch (error) {
+      console.error("Error updating resource status:", error);
+      res.status(500).json({ message: "Failed to update resource status" });
+    }
+  });
+  
+  // GET /api/admin/stats - Get admin dashboard stats
+  app.get('/api/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getAdminStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch admin stats" });
     }
   });
 

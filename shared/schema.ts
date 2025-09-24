@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   username: text("username").unique(),
   fullName: text("full_name"),
   major: text("major"),
+  role: text("role").default("student").notNull(), // student or admin
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(), // Required by Replit Auth
 });
@@ -159,6 +160,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   fullName: true,
   major: true,
+  role: true,
 });
 
 export const insertResourceSchema = createInsertSchema(resources).pick({
