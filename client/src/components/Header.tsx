@@ -26,6 +26,7 @@ import { useState } from "react";
 interface HeaderProps {
   onSearch?: (query: string) => void;
   onThemeToggle?: () => void;
+  onLogout?: () => void;
   theme?: "light" | "dark";
   userName?: string;
   userInitials?: string;
@@ -35,6 +36,7 @@ interface HeaderProps {
 export default function Header({ 
   onSearch,
   onThemeToggle,
+  onLogout,
   theme = "light",
   userName = "John Doe",
   userInitials = "JD",
@@ -50,6 +52,9 @@ export default function Header({
 
   const handleProfileAction = (action: string) => {
     console.log("Profile action:", action);
+    if (action === 'logout' && onLogout) {
+      onLogout();
+    }
   };
 
   const handleNotification = () => {

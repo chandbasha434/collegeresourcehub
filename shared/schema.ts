@@ -7,20 +7,37 @@ import {
   integer, 
   decimal,
   boolean,
-  primaryKey
+  primaryKey,
+  jsonb,
+  index
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Users table - Updated for Replit Auth compatibility
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  email: varchar("email").unique(), // Required by Replit Auth, nullable
+  firstName: varchar("first_name"), // Required by Replit Auth, nullable
+  lastName: varchar("last_name"), // Required by Replit Auth, nullable  
+  profileImageUrl: varchar("profile_image_url"), // Required by Replit Auth, nullable
+  // Additional fields for our application
+  username: text("username").unique(),
   fullName: text("full_name"),
   major: text("major"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(), // Required by Replit Auth
 });
 
 // Resources table
@@ -176,6 +193,7 @@ export const insertFavoriteSchema = createInsertSchema(favorites).pick({
 // TypeScript types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert; // Required by Replit Auth
 
 export type InsertResource = z.infer<typeof insertResourceSchema>;
 export type Resource = typeof resources.$inferSelect;

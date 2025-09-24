@@ -7,6 +7,7 @@ import {
   favorites,
   type User, 
   type InsertUser,
+  type UpsertUser,
   type Resource,
   type InsertResource,
   type Rating,
@@ -21,8 +22,9 @@ import { db } from "./db";
 import { eq, desc, and, ilike, gte, sql, count } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations
+  // User operations (including Replit Auth required methods)
   getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>; // Required by Replit Auth
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -91,12 +93,29 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!username) return undefined;
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
@@ -107,6 +126,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...insertUser,
         createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
     return user;

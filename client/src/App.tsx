@@ -5,9 +5,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
 
 // Components
-import AuthForm from "./components/AuthForm";
+import Landing from "./components/Landing";
+import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import UploadResource from "./components/UploadResource";
 import SearchFilters from "./components/SearchFilters";
@@ -179,15 +181,11 @@ function MyResources() {
   );
 }
 
-function Router() {
-  const [currentPath, setCurrentPath] = useState("/");
-  
+function AuthenticatedRouter() {
   return (
     <Switch>
-      <Route path="/auth" component={AuthForm} />
-      <Route path="/">
-        <Dashboard />
-      </Route>
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/browse">
         <BrowseResources />
       </Route>
@@ -214,9 +212,17 @@ function Router() {
   );
 }
 
-function MainApp() {
+function UnauthenticatedRouter() {
+  return (
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route component={Landing} />
+    </Switch>
+  );
+}
+
+function AuthenticatedApp({ user }: { user: any }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -230,6 +236,33 @@ function MainApp() {
     "--sidebar-width-icon": "3rem",
   };
 
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.fullName) {
+      return user.fullName;
+    }
+    if (user?.username) {
+      return user.username;
+    }
+    if (user?.email) {
+      return user.email;
+    }
+    return "User";
+  };
+
+  // Get user initials
+  const getUserInitials = () => {
+    const displayName = getUserDisplayName();
+    return displayName.split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || "U";
+  };
+
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
@@ -239,13 +272,14 @@ function MainApp() {
             theme={theme}
             onThemeToggle={toggleTheme}
             onSearch={(query) => console.log("Global search:", query)}
-            userName="John Doe"
-            userInitials="JD"
-            notificationCount={3}
+            userName={getUserDisplayName()}
+            userInitials={getUserInitials()}
+            notificationCount={0}
+            onLogout={() => window.location.href = '/api/logout'}
           />
           <main className="flex-1 overflow-auto p-6 bg-background">
             <div className="max-w-7xl mx-auto">
-              <Router />
+              <AuthenticatedRouter />
             </div>
           </main>
         </div>
@@ -254,13 +288,28 @@ function MainApp() {
   );
 }
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // TODO: remove mock functionality
+function AppContent() {
+  const { user, isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <AuthenticatedApp user={user} /> : <UnauthenticatedRouter />;
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {isAuthenticated ? <MainApp /> : <AuthForm />}
+        <AppContent />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
