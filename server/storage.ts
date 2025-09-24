@@ -84,6 +84,18 @@ export interface IStorage {
     totalDownloads: number;
     averageRating: number;
   }>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  getAllResources(): Promise<Resource[]>;
+  getAdminStats(): Promise<{
+    totalUsers: number;
+    totalResources: number;
+    totalDownloads: number;
+    averageRating: number;
+    activeUsers: number;
+    inactiveResources: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -497,6 +509,76 @@ export class DatabaseStorage implements IStorage {
       totalDownloads: stats.totalDownloads || 0,
       averageRating: stats.averageRating || 0,
     };
+  }
+  
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+      return allUsers;
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
+  }
+  
+  async getAllResources(): Promise<Resource[]> {
+    try {
+      const allResources = await db.select().from(resources).orderBy(desc(resources.createdAt));
+      return allResources;
+    } catch (error) {
+      console.error('Error getting all resources:', error);
+      return [];
+    }
+  }
+  
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    totalResources: number;
+    totalDownloads: number;
+    averageRating: number;
+    activeUsers: number;
+    inactiveResources: number;
+  }> {
+    try {
+      const [userCountResult] = await db.select({ count: count() }).from(users);
+      const [resourceCountResult] = await db.select({ count: count() }).from(resources);
+      const [inactiveResourcesResult] = await db.select({ count: count() }).from(resources).where(eq(resources.isActive, false));
+      
+      const [downloadSumResult] = await db
+        .select({ sum: sql<number>`COALESCE(SUM(${resources.downloadCount}), 0)` })
+        .from(resources);
+      
+      const [avgRatingResult] = await db
+        .select({ avg: sql<number>`COALESCE(AVG(CAST(${resources.averageRating} AS DECIMAL)), 0)` })
+        .from(resources)
+        .where(gte(sql`CAST(${resources.averageRating} AS DECIMAL)`, 0));
+      
+      // Count active users (users who uploaded at least one resource)
+      const [activeUsersResult] = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${resources.uploadedById})` })
+        .from(resources)
+        .where(eq(resources.isActive, true));
+      
+      return {
+        totalUsers: userCountResult?.count || 0,
+        totalResources: resourceCountResult?.count || 0,
+        totalDownloads: downloadSumResult?.sum || 0,
+        averageRating: avgRatingResult?.avg || 0,
+        activeUsers: activeUsersResult?.count || 0,
+        inactiveResources: inactiveResourcesResult?.count || 0
+      };
+    } catch (error) {
+      console.error('Error getting admin stats:', error);
+      return {
+        totalUsers: 0,
+        totalResources: 0,
+        totalDownloads: 0,
+        averageRating: 0,
+        activeUsers: 0,
+        inactiveResources: 0
+      };
+    }
   }
 }
 

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Upload, AlertCircle } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
 // Components
@@ -18,81 +22,30 @@ import AppSidebar from "./components/AppSidebar";
 import Header from "./components/Header";
 import NotFound from "@/pages/not-found";
 
-// TODO: remove mock functionality
-const mockResources = [
-  {
-    id: "1",
-    title: "Advanced Calculus Notes - Chapter 7",
-    description: "Comprehensive notes covering differential equations and integration techniques",
-    subject: "Mathematics",
-    semester: "Fall 2024",
-    fileType: "PDF",
-    rating: 4.9,
-    downloads: 234,
-    uploadedBy: "Sarah Chen",
-    uploadedAt: "2 hours ago",
-  },
-  {
-    id: "2", 
-    title: "Organic Chemistry Lab Report Template",
-    description: "Professional template for lab reports with proper formatting guidelines",
-    subject: "Chemistry",
-    semester: "Fall 2024",
-    fileType: "DOCX",
-    rating: 4.7,
-    downloads: 189,
-    uploadedBy: "Alex Rodriguez",
-    uploadedAt: "5 hours ago",
-  },
-  {
-    id: "3",
-    title: "Data Structures Final Exam 2023",
-    description: "Past exam paper with detailed solutions and explanations",
-    subject: "Computer Science",
-    semester: "Spring 2023",
-    fileType: "PDF",
-    rating: 4.8,
-    downloads: 567,
-    uploadedBy: "Priya Patel",
-    uploadedAt: "1 day ago",
-  },
-  {
-    id: "4",
-    title: "Physics Mechanics Problem Set Solutions",
-    description: "Step-by-step solutions for complex mechanics problems",
-    subject: "Physics",
-    semester: "Fall 2024",
-    fileType: "PDF",
-    rating: 4.6,
-    downloads: 145,
-    uploadedBy: "Michael Zhang",
-    uploadedAt: "3 days ago",
-  },
-  {
-    id: "5",
-    title: "Biology Cell Structure Diagrams",
-    description: "Detailed diagrams and explanations of cellular components",
-    subject: "Biology",
-    semester: "Fall 2024",
-    fileType: "PDF",
-    rating: 4.5,
-    downloads: 89,
-    uploadedBy: "Emma Wilson",
-    uploadedAt: "1 week ago",
-  },
-  {
-    id: "6",
-    title: "Economics Market Analysis Report",
-    description: "Comprehensive analysis of current market trends and indicators",
-    subject: "Economics",
-    semester: "Fall 2024",
-    fileType: "DOCX",
-    rating: 4.3,
-    downloads: 76,
-    uploadedBy: "David Kumar",
-    uploadedAt: "1 week ago",
-  }
-];
+
+interface Resource {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  semester: string | null;
+  fileType: string;
+  fileName: string;
+  fileSize: number;
+  filePath: string;
+  uploadedById: string;
+  downloadCount: number | null;
+  averageRating: string | null;
+  ratingCount: number | null;
+  isActive: boolean | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  uploadedBy?: {
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+  };
+}
 
 function BrowseResources() {
   const [filters, setFilters] = useState({
@@ -124,7 +77,7 @@ function BrowseResources() {
     },
   });
 
-  const handleSearch = (newFilters: any) => {
+  const handleSearch = (newFilters: typeof filters) => {
     console.log("Updating filters:", newFilters);
     setFilters({
       query: newFilters.query || '',
@@ -170,7 +123,7 @@ function BrowseResources() {
           </div>
         ) : resources && resources.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {resources.map((resource) => (
+            {resources.map((resource: Resource) => (
               <ResourceCard key={resource.id} resource={resource} />
             ))}
           </div>
@@ -182,6 +135,79 @@ function BrowseResources() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Favorites({ user }: { user: any }) {
+  // Fetch user's favorite resources
+  const { data: favorites, isLoading, error, refetch } = useQuery({
+    queryKey: ['/api/users/me/favorites', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/users/me/favorites', {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch favorites: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    },
+    enabled: !!user?.id, // Only fetch if user is authenticated
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-medium text-foreground">Favorites</h1>
+        <p className="text-muted-foreground">Resources you've saved for later</p>
+      </div>
+      
+      {error ? (
+        <div className="text-center py-12" data-testid="favorites-error-state">
+          <AlertCircle className="mx-auto h-12 w-12 text-destructive mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Failed to load favorites</h3>
+          <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
+          <Button variant="outline" onClick={() => refetch()} data-testid="button-retry-favorites">
+            Try Again
+          </Button>
+        </div>
+      ) : isLoading ? (
+        // Loading skeleton
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="favorites-loading-skeleton">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="hover-elevate">
+              <CardHeader>
+                <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-4 w-full bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : favorites && Array.isArray(favorites) && favorites.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="favorites-grid">
+          {favorites.map((resource: Resource) => (
+            <ResourceCard key={resource.id} resource={resource} data-testid={`favorite-resource-${resource.id}`} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12" data-testid="favorites-empty-state">
+          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">No favorite resources yet.</p>
+          <p className="text-sm text-muted-foreground mt-2">Star resources to save them here.</p>
+          <Link href="/browse">
+            <Button className="mt-4" data-testid="browse-resources-button">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Browse Resources
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -231,7 +257,7 @@ function MyResources({ user }: { user: any }) {
         </div>
       ) : userResources && userResources.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {userResources.map((resource) => (
+          {userResources.map((resource: Resource) => (
             <ResourceCard key={resource.id} resource={resource} />
           ))}
         </div>
@@ -265,16 +291,7 @@ function AuthenticatedRouter({ user }: { user: any }) {
         <MyResources user={user} />
       </Route>
       <Route path="/favorites">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-medium text-foreground">Favorites</h1>
-            <p className="text-muted-foreground">Resources you've saved for later</p>
-          </div>
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No favorite resources yet.</p>
-            <p className="text-sm text-muted-foreground mt-2">Star resources to save them here.</p>
-          </div>
-        </div>
+        <Favorites user={user} />
       </Route>
       <Route component={NotFound} />
     </Switch>
@@ -326,7 +343,7 @@ function AuthenticatedApp({ user }: { user: any }) {
   const getUserInitials = () => {
     const displayName = getUserDisplayName();
     return displayName.split(' ')
-      .map(name => name[0])
+      .map((name: string) => name[0])
       .join('')
       .toUpperCase()
       .slice(0, 2) || "U";

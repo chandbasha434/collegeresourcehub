@@ -14,15 +14,21 @@ interface ResourceCardProps {
 }
 
 const getFileIcon = (fileType: string) => {
-  switch (fileType.toUpperCase()) {
-    case 'PDF':
-      return <FileText className="h-4 w-4 text-red-600" />;
-    case 'DOCX':
-    case 'DOC':
-      return <File className="h-4 w-4 text-blue-600" />;
-    default:
-      return <File className="h-4 w-4 text-muted-foreground" />;
+  // Handle both MIME types and file extensions
+  const type = fileType.toLowerCase();
+  if (type.includes('pdf') || type === 'pdf') {
+    return <FileText className="h-4 w-4 text-red-600" />;
   }
+  if (type.includes('word') || type.includes('document') || 
+      type === 'docx' || type === 'doc' || 
+      type.includes('vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+      type.includes('msword')) {
+    return <File className="h-4 w-4 text-blue-600" />;
+  }
+  if (type.includes('image') || type.includes('jpeg') || type.includes('png')) {
+    return <File className="h-4 w-4 text-green-600" />;
+  }
+  return <File className="h-4 w-4 text-muted-foreground" />;
 };
 
 // Helper function to format relative time
@@ -54,23 +60,55 @@ const getUserDisplayName = (user: any, fallbackId?: string) => {
 export default function ResourceCard({ resource }: ResourceCardProps) {
   const { toast } = useToast();
   
-  // Mutation for incrementing download count
+  // Mutation for downloading file (this will handle both download and count increment)
   const downloadMutation = useMutation({
-    mutationFn: () => apiRequest(`/api/resources/${resource.id}/download`, {
-      method: 'POST'
-    }),
-    onSuccess: () => {
+    mutationFn: async () => {
+      const response = await fetch(`/api/resources/${resource.id}/download`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the filename from the response headers or use a default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = resource.fileName;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      return { filename };
+    },
+    onSuccess: (data) => {
       // Invalidate resources queries to update download count
       queryClient.invalidateQueries({ queryKey: ['/api/resources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me/favorites'] });
       toast({
-        title: "Download started",
-        description: "The resource download has been initiated.",
+        title: "Download successful",
+        description: `${data.filename} has been downloaded.`,
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error('Download error:', error);
       toast({
         title: "Download failed",
-        description: "Could not download the resource. Please try again.",
+        description: error.message || "Could not download the resource. Please try again.",
         variant: "destructive",
       });
     },
@@ -123,9 +161,11 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
           <Badge variant="secondary" className="text-xs" data-testid={`subject-${resource.subject.toLowerCase()}`}>
             {resource.subject}
           </Badge>
-          <Badge variant="secondary" className="text-xs" data-testid={`semester-${resource.semester.toLowerCase().replace(' ', '-')}`}>
-            {resource.semester}
-          </Badge>
+          {resource.semester && (
+            <Badge variant="secondary" className="text-xs" data-testid={`semester-${resource.semester.toLowerCase().replace(' ', '-')}`}>
+              {resource.semester}
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
@@ -147,7 +187,7 @@ export default function ResourceCard({ resource }: ResourceCardProps) {
           <div className="flex items-center space-x-2">
             <Avatar className="h-5 w-5">
               <AvatarFallback className="text-xs">
-                {getUserDisplayName((resource as any).uploadedBy || resource.uploadedById, resource.uploadedById).split(' ').map(n => n[0]).join('').toUpperCase()}
+                {getUserDisplayName((resource as any).uploadedBy || resource.uploadedById, resource.uploadedById).split(' ').map((n: string) => n[0]).join('').toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <span data-testid={`uploader-${resource.id}`}>
