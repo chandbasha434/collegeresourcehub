@@ -1,5 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
@@ -10,6 +13,49 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure multer for file uploads
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req: any, file, cb) => {
+        const userId = req.user?.claims?.sub;
+        const userUploadDir = path.join(uploadDir, userId || 'anonymous');
+        if (!fs.existsSync(userUploadDir)) {
+          fs.mkdirSync(userUploadDir, { recursive: true });
+        }
+        cb(null, userUploadDir);
+      },
+      filename: (req, file, cb) => {
+        const timestamp = Date.now();
+        const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        cb(null, `${timestamp}-${sanitizedName}`);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      // Allow PDF, Word docs, and images
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/jpg', 
+        'image/png'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, Word documents, and images are allowed.'));
+      }
+    }
+  });
+
   // Auth middleware
   await setupAuth(app);
 
@@ -98,31 +144,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/resources - Create new resource (protected)
-  app.post('/api/resources', isAuthenticated, async (req: any, res) => {
+  // POST /api/resources - Create new resource with file upload (protected)
+  app.post('/api/resources', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Parse tags if provided
+      let tags: string[] = [];
+      if (req.body.tags) {
+        try {
+          tags = JSON.parse(req.body.tags);
+        } catch (e) {
+          console.warn("Failed to parse tags:", e);
+        }
+      }
+      
+      // Prepare resource data
       const resourceData = insertResourceSchema.parse({
-        ...req.body,
+        title: req.body.title,
+        description: req.body.description || null,
+        subject: req.body.subject,
+        semester: req.body.semester || null,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        filePath: req.file.path,
         uploadedById: userId
       });
       
-      // For now, mock file handling - in production you'd handle file upload here
-      const mockFileData = {
-        fileName: req.body.fileName || 'mock-file.pdf',
-        fileSize: req.body.fileSize || 1024000, // 1MB
-        fileType: req.body.fileType || 'application/pdf',
-        filePath: `/uploads/${userId}/${Date.now()}-${req.body.fileName || 'mock-file.pdf'}`
-      };
+      const resource = await storage.createResource(resourceData);
       
-      const resource = await storage.createResource({
-        ...resourceData,
-        ...mockFileData
-      });
+      // Handle tags if provided
+      if (tags.length > 0) {
+        try {
+          for (const tagName of tags) {
+            // Create or find the tag
+            let tag = await storage.getTagByName(tagName);
+            if (!tag) {
+              const newTag = insertTagSchema.parse({ name: tagName });
+              tag = await storage.createTag(newTag);
+            }
+            
+            // Associate tag with resource
+            await storage.addTagToResource(resource.id, tag.id);
+          }
+        } catch (tagError) {
+          console.warn("Failed to process some tags:", tagError);
+          // Don't fail the whole request for tag errors
+        }
+      }
       
       res.status(201).json(resource);
     } catch (error) {
       console.error("Error creating resource:", error);
+      
+      // Clean up uploaded file if resource creation failed
+      if (req.file && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Failed to cleanup uploaded file:", cleanupError);
+        }
+      }
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid resource data", errors: error.errors });
+      }
+      
       res.status(500).json({ message: "Failed to create resource" });
     }
   });

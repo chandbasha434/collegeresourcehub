@@ -7,7 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, FileText, File } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { Upload, X, FileText, File, LogIn } from "lucide-react";
 
 const subjects = [
   "Mathematics", "Computer Science", "Physics", "Chemistry", "Biology", 
@@ -30,6 +33,31 @@ export default function UploadResource() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  
+  // Show login prompt for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center space-y-4">
+          <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
+          <div>
+            <h1 className="text-2xl font-medium text-foreground">Authentication Required</h1>
+            <p className="text-muted-foreground">
+              Please log in to upload and share study materials
+            </p>
+          </div>
+          <Button 
+            onClick={() => window.location.href = '/auth/login'}
+            data-testid="button-login"
+          >
+            <LogIn className="mr-2 h-4 w-4" />
+            Log In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -92,6 +120,66 @@ export default function UploadResource() {
     });
   };
 
+  // Mutation for uploading resource with file
+  const uploadMutation = useMutation({
+    mutationFn: async ({ formData, file }: { formData: any, file: File }) => {
+      const uploadFormData = new FormData();
+      
+      // Add the file
+      uploadFormData.append('file', file);
+      
+      // Add metadata
+      uploadFormData.append('title', formData.title.trim());
+      uploadFormData.append('subject', formData.subject.trim());
+      if (formData.description.trim()) {
+        uploadFormData.append('description', formData.description.trim());
+      }
+      if (formData.semester.trim()) {
+        uploadFormData.append('semester', formData.semester.trim());
+      }
+      if (formData.tags.length > 0) {
+        uploadFormData.append('tags', JSON.stringify(formData.tags));
+      }
+      
+      const response = await fetch('/api/resources', {
+        method: 'POST',
+        body: uploadFormData,
+        credentials: 'include', // Include session cookies
+      });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate resources queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: ['/api/resources'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      toast({
+        title: "Resource uploaded!",
+        description: "Your resource has been shared with the community.",
+      });
+      
+      // Reset form
+      setFormData({ title: "", description: "", subject: "", semester: "", tags: [], currentTag: "" });
+      setSelectedFile(null);
+      
+      console.log("Resource created:", data);
+    },
+    onError: (error: any) => {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Could not upload the resource. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
@@ -103,15 +191,17 @@ export default function UploadResource() {
       return;
     }
     
-    console.log("Upload submitted:", { formData, file: selectedFile });
-    toast({
-      title: "Resource uploaded!",
-      description: "Your resource has been shared with the community.",
-    });
+    // Validate required fields
+    if (!formData.title.trim() || !formData.subject.trim()) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in the title and subject.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Reset form
-    setFormData({ title: "", description: "", subject: "", semester: "", tags: [], currentTag: "" });
-    setSelectedFile(null);
+    uploadMutation.mutate({ formData, file: selectedFile });
   };
 
   const getFileIcon = (fileName: string) => {
@@ -311,13 +401,19 @@ export default function UploadResource() {
         </Card>
 
         <div className="flex gap-4">
-          <Button type="submit" className="flex-1" data-testid="button-upload">
+          <Button 
+            type="submit" 
+            className="flex-1" 
+            disabled={uploadMutation.isPending}
+            data-testid="button-upload"
+          >
             <Upload className="mr-2 h-4 w-4" />
-            Upload Resource
+            {uploadMutation.isPending ? "Uploading..." : "Upload Resource"}
           </Button>
           <Button 
             type="button" 
             variant="outline" 
+            disabled={uploadMutation.isPending}
             onClick={() => {
               setFormData({ title: "", description: "", subject: "", semester: "", tags: [], currentTag: "" });
               setSelectedFile(null);

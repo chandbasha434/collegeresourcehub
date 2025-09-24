@@ -95,30 +95,43 @@ const mockResources = [
 ];
 
 function BrowseResources() {
-  const [filteredResources, setFilteredResources] = useState(mockResources);
+  const [filters, setFilters] = useState({
+    query: '',
+    subject: '',
+    minRating: '',
+    sortBy: 'newest' as const
+  });
 
-  const handleSearch = (filters: any) => {
-    console.log("Filtering resources with:", filters);
-    // TODO: remove mock functionality - implement real filtering
-    let filtered = mockResources;
-    
-    if (filters.query) {
-      filtered = filtered.filter(resource => 
-        resource.title.toLowerCase().includes(filters.query.toLowerCase()) ||
-        resource.description.toLowerCase().includes(filters.query.toLowerCase())
-      );
-    }
-    
-    if (filters.subject && filters.subject !== "All Subjects") {
-      filtered = filtered.filter(resource => resource.subject === filters.subject);
-    }
-    
-    if (filters.minRating && filters.minRating !== "all") {
-      const minRating = parseFloat(filters.minRating);
-      filtered = filtered.filter(resource => resource.rating >= minRating);
-    }
-    
-    setFilteredResources(filtered);
+  // Fetch resources with current filters
+  const { data: resources, isLoading } = useQuery({
+    queryKey: ['/api/resources', filters],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      
+      if (filters.query) params.append('search', filters.query);
+      if (filters.subject && filters.subject !== "All Subjects") {
+        params.append('subject', filters.subject);
+      }
+      if (filters.minRating && filters.minRating !== "all") {
+        params.append('minRating', filters.minRating);
+      }
+      params.append('sortBy', filters.sortBy);
+      params.append('limit', '50'); // Reasonable limit for browsing
+      
+      const queryString = params.toString();
+      return fetch(`/api/resources${queryString ? '?' + queryString : ''}`)
+        .then(res => res.json());
+    },
+  });
+
+  const handleSearch = (newFilters: any) => {
+    console.log("Updating filters:", newFilters);
+    setFilters({
+      query: newFilters.query || '',
+      subject: newFilters.subject || '',
+      minRating: newFilters.minRating || '',
+      sortBy: newFilters.sortBy || 'newest'
+    });
   };
 
   return (
@@ -133,18 +146,37 @@ function BrowseResources() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium">
-            {filteredResources.length} resources found
+            {isLoading ? 'Loading...' : `${resources?.length || 0} resources found`}
           </h2>
         </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredResources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
-          ))}
-        </div>
-        
-        {filteredResources.length === 0 && (
+        {isLoading ? (
+          // Loading skeleton
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="hover-elevate">
+                <CardHeader>
+                  <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                  <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : resources && resources.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {resources.map((resource) => (
+              <ResourceCard key={resource.id} resource={resource} />
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-12">
+            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No resources found matching your criteria.</p>
             <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or search terms.</p>
           </div>
@@ -154,9 +186,23 @@ function BrowseResources() {
   );
 }
 
-function MyResources() {
-  // TODO: remove mock functionality
-  const userResources = mockResources.slice(0, 2); // Mock user's resources
+function MyResources({ user }: { user: any }) {
+  // Fetch user's own resources
+  const { data: userResources, isLoading } = useQuery({
+    queryKey: ['/api/resources', { userId: user?.id }],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (user?.id) {
+        params.append('userId', user.id);
+      }
+      params.append('sortBy', 'newest');
+      
+      const queryString = params.toString();
+      return fetch(`/api/resources${queryString ? '?' + queryString : ''}`)
+        .then(res => res.json());
+    },
+    enabled: !!user?.id, // Only fetch if user ID is available
+  });
   
   return (
     <div className="space-y-6">
@@ -165,23 +211,46 @@ function MyResources() {
         <p className="text-muted-foreground">Resources you've uploaded to the community</p>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {userResources.map((resource) => (
-          <ResourceCard key={resource.id} resource={resource} />
-        ))}
-      </div>
-      
-      {userResources.length === 0 && (
+      {isLoading ? (
+        // Loading skeleton
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Card key={index} className="hover-elevate">
+              <CardHeader>
+                <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-4 w-full bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : userResources && userResources.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {userResources.map((resource) => (
+            <ResourceCard key={resource.id} resource={resource} />
+          ))}
+        </div>
+      ) : (
         <div className="text-center py-12">
+          <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">You haven't uploaded any resources yet.</p>
           <p className="text-sm text-muted-foreground mt-2">Share your knowledge with the community!</p>
+          <Button className="mt-4" onClick={() => {/* TODO: Navigate to upload */}}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Your First Resource
+          </Button>
         </div>
       )}
     </div>
   );
 }
 
-function AuthenticatedRouter() {
+function AuthenticatedRouter({ user }: { user: any }) {
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -193,7 +262,7 @@ function AuthenticatedRouter() {
         <UploadResource />
       </Route>
       <Route path="/my-resources">
-        <MyResources />
+        <MyResources user={user} />
       </Route>
       <Route path="/favorites">
         <div className="space-y-6">
@@ -279,7 +348,7 @@ function AuthenticatedApp({ user }: { user: any }) {
           />
           <main className="flex-1 overflow-auto p-6 bg-background">
             <div className="max-w-7xl mx-auto">
-              <AuthenticatedRouter />
+              <AuthenticatedRouter user={user} />
             </div>
           </main>
         </div>

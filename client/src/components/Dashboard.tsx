@@ -2,56 +2,47 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Download, Star, Upload, TrendingUp, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import ResourceCard from "@/components/ResourceCard";
 
-// TODO: remove mock functionality
-const mockStats = [
-  { title: "Total Resources", value: "2,847", icon: BookOpen, change: "+12%" },
-  { title: "Downloads This Week", value: "1,249", icon: Download, change: "+23%" },
-  { title: "Average Rating", value: "4.8", icon: Star, change: "+0.2" },
-  { title: "Active Contributors", value: "342", icon: Users, change: "+8%" },
-];
-
-const mockRecentResources = [
-  {
-    id: "1",
-    title: "Advanced Calculus Notes - Chapter 7",
-    description: "Comprehensive notes covering differential equations and integration techniques",
-    subject: "Mathematics",
-    semester: "Fall 2024",
-    fileType: "PDF",
-    rating: 4.9,
-    downloads: 234,
-    uploadedBy: "Sarah Chen",
-    uploadedAt: "2 hours ago",
-  },
-  {
-    id: "2", 
-    title: "Organic Chemistry Lab Report Template",
-    description: "Professional template for lab reports with proper formatting guidelines",
-    subject: "Chemistry",
-    semester: "Fall 2024",
-    fileType: "DOCX",
-    rating: 4.7,
-    downloads: 189,
-    uploadedBy: "Alex Rodriguez",
-    uploadedAt: "5 hours ago",
-  },
-  {
-    id: "3",
-    title: "Data Structures Final Exam 2023",
-    description: "Past exam paper with detailed solutions and explanations",
-    subject: "Computer Science",
-    semester: "Spring 2023",
-    fileType: "PDF",
-    rating: 4.8,
-    downloads: 567,
-    uploadedBy: "Priya Patel",
-    uploadedAt: "1 day ago",
-  },
-];
-
 export default function Dashboard() {
+  // Fetch dashboard stats
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/stats'],
+  });
+
+  // Fetch recent resources (limit to 6 for dashboard)
+  const { data: recentResources, isLoading: resourcesLoading } = useQuery({
+    queryKey: ['/api/resources', { limit: 6, sortBy: 'newest' }],
+  });
+
+  // Transform stats data for display
+  const dashboardStats = stats ? [
+    { 
+      title: "Total Resources", 
+      value: stats.totalResources?.toString() || "0", 
+      icon: BookOpen, 
+      change: "+12%" // TODO: Calculate actual change
+    },
+    { 
+      title: "Total Downloads", 
+      value: stats.totalDownloads?.toString() || "0", 
+      icon: Download, 
+      change: "+23%" // TODO: Calculate actual change
+    },
+    { 
+      title: "Average Rating", 
+      value: stats.averageRating ? stats.averageRating.toFixed(1) : "0.0", 
+      icon: Star, 
+      change: "+0.2" // TODO: Calculate actual change
+    },
+    { 
+      title: "Active Contributors", 
+      value: stats.activeUsers?.toString() || "0", 
+      icon: Users, 
+      change: "+8%" // TODO: Calculate actual change
+    },
+  ] : [];
   return (
     <div className="space-y-6">
       <div>
@@ -61,21 +52,37 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {mockStats.map((stat, index) => (
-          <Card key={index} className="hover-elevate">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-medium">{stat.value}</div>
-              <div className="flex items-center text-xs text-muted-foreground">
-                <TrendingUp className="mr-1 h-3 w-3" />
-                {stat.change} from last week
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {statsLoading ? (
+          // Loading skeleton for stats
+          Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="hover-elevate">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          dashboardStats.map((stat, index) => (
+            <Card key={index} className="hover-elevate">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+                <stat.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-medium">{stat.value}</div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <TrendingUp className="mr-1 h-3 w-3" />
+                  {stat.change} from last week
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -107,9 +114,32 @@ export default function Dashboard() {
           </Button>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {mockRecentResources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
-          ))}
+          {resourcesLoading ? (
+            // Loading skeleton for resources
+            Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="hover-elevate">
+                <CardHeader>
+                  <div className="h-5 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                  <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+                    <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : recentResources && recentResources.length > 0 ? (
+            recentResources.map((resource) => (
+              <ResourceCard key={resource.id} resource={resource} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-muted-foreground">
+              <BookOpen className="mx-auto h-8 w-8 mb-2" />
+              <p>No resources available yet. Be the first to upload!</p>
+            </div>
+          )}
         </div>
       </div>
 
