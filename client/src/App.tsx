@@ -22,6 +22,7 @@ import SearchFilters from "./components/SearchFilters";
 import ResourceCard from "./components/ResourceCard";
 import AppSidebar from "./components/AppSidebar";
 import Header from "./components/Header";
+import Settings from "./components/Settings";
 import NotFound from "@/pages/not-found";
 
 
@@ -294,6 +295,9 @@ function AuthenticatedRouter({ user }: { user: any }) {
       </Route>
       <Route path="/favorites">
         <Favorites user={user} />
+      </Route>
+      <Route path="/settings">
+        <Settings user={user} />
       </Route>
       <Route component={NotFound} />
     </Switch>
