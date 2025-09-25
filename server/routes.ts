@@ -588,6 +588,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trending Routes
+
+  // GET /api/trending/resources - Get trending resources
+  app.get('/api/trending/resources', async (req, res) => {
+    try {
+      const { timeframe = 'week' } = req.query;
+      const validTimeframes = ['week', 'month', 'all'];
+      const selectedTimeframe = validTimeframes.includes(timeframe as string) 
+        ? (timeframe as 'week' | 'month' | 'all') 
+        : 'week';
+      
+      const trendingResources = await storage.getTrendingResources(selectedTimeframe);
+      res.json(trendingResources);
+    } catch (error) {
+      console.error("Error fetching trending resources:", error);
+      res.status(500).json({ message: "Failed to fetch trending resources" });
+    }
+  });
+
+  // GET /api/trending/subjects - Get trending subjects
+  app.get('/api/trending/subjects', async (req, res) => {
+    try {
+      const { timeframe = 'week' } = req.query;
+      const validTimeframes = ['week', 'month', 'all'];
+      const selectedTimeframe = validTimeframes.includes(timeframe as string) 
+        ? (timeframe as 'week' | 'month' | 'all') 
+        : 'week';
+      
+      const trendingSubjects = await storage.getTrendingSubjects(selectedTimeframe);
+      res.json(trendingSubjects);
+    } catch (error) {
+      console.error("Error fetching trending subjects:", error);
+      res.status(500).json({ message: "Failed to fetch trending subjects" });
+    }
+  });
+
   // Stats Routes
 
   // GET /api/stats - Get dashboard stats

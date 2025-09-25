@@ -17,9 +17,9 @@ export default function RatingSystem({
   "data-testid": dataTestId
 }: RatingSystemProps) {
   const sizeClasses = {
-    sm: "h-3 w-3",
-    md: "h-4 w-4", 
-    lg: "h-5 w-5",
+    sm: "h-4 w-4",
+    md: "h-5 w-5", 
+    lg: "h-6 w-6",
   };
 
   const handleStarClick = (starRating: number) => {
@@ -48,8 +48,8 @@ export default function RatingSystem({
               sizeClasses[size],
               "transition-all duration-150",
               star <= rating 
-                ? "fill-amber-400 text-amber-400" 
-                : "fill-muted text-muted-foreground"
+                ? "fill-yellow-400 text-yellow-400" 
+                : "fill-gray-200 text-gray-300 dark:fill-gray-600 dark:text-gray-500"
             )}
           />
         </button>

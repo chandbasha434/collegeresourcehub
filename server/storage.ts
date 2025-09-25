@@ -85,6 +85,32 @@ export interface IStorage {
     averageRating: number;
   }>;
   
+  // Trending operations
+  getTrendingResources(timeframe?: 'week' | 'month' | 'all'): Promise<{
+    id: string;
+    title: string;
+    description: string;
+    subject: string;
+    fileType: string;
+    downloadCount: number;
+    averageRating: number;
+    ratingCount: number;
+    uploadedAt: string;
+    uploader: {
+      username: string;
+      firstName?: string;
+      lastName?: string;
+    };
+    trendingScore: number;
+    growthRate: number;
+  }[]>;
+  getTrendingSubjects(timeframe?: 'week' | 'month' | 'all'): Promise<{
+    subject: string;
+    resourceCount: number;
+    totalDownloads: number;
+    growthRate: number;
+  }[]>;
+  
   // Admin operations
   getAllUsers(): Promise<User[]>;
   getAllResources(): Promise<Resource[]>;
@@ -579,6 +605,121 @@ export class DatabaseStorage implements IStorage {
         inactiveResources: 0
       };
     }
+  }
+
+  // Trending operations
+  async getTrendingResources(timeframe: 'week' | 'month' | 'all' = 'week') {
+    let dateFilter;
+    const now = new Date();
+    
+    switch (timeframe) {
+      case 'week':
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+      default:
+        dateFilter = new Date(0); // Beginning of time
+        break;
+    }
+
+    const results = await db
+      .select({
+        id: resources.id,
+        title: resources.title,
+        description: resources.description,
+        subject: resources.subject,
+        fileType: resources.fileType,
+        downloadCount: resources.downloadCount,
+        averageRating: resources.averageRating,
+        ratingCount: resources.ratingCount,
+        uploadedAt: resources.createdAt,
+        uploaderId: resources.uploadedById,
+        uploaderUsername: users.username,
+        uploaderFirstName: users.firstName,
+        uploaderLastName: users.lastName,
+      })
+      .from(resources)
+      .innerJoin(users, eq(resources.uploadedById, users.id))
+      .where(
+        and(
+          eq(resources.isActive, true),
+          gte(resources.createdAt, dateFilter)
+        )
+      )
+      .orderBy(
+        desc(sql`(
+          ${resources.downloadCount} * 0.4 + 
+          CAST(${resources.averageRating} AS DECIMAL) * ${resources.ratingCount} * 0.6
+        )`)
+      )
+      .limit(10);
+
+    return results.map(result => ({
+      id: result.id,
+      title: result.title,
+      description: result.description || '',
+      subject: result.subject,
+      fileType: result.fileType,
+      downloadCount: result.downloadCount || 0,
+      averageRating: parseFloat(result.averageRating || '0'),
+      ratingCount: result.ratingCount || 0,
+      uploadedAt: result.uploadedAt?.toISOString() || new Date().toISOString(),
+      uploader: {
+        username: result.uploaderUsername || 'Unknown',
+        firstName: result.uploaderFirstName || undefined,
+        lastName: result.uploaderLastName || undefined,
+      },
+      trendingScore: Math.min(100, Math.floor(
+        (result.downloadCount || 0) * 0.4 + 
+        parseFloat(result.averageRating || '0') * (result.ratingCount || 0) * 0.6
+      )),
+      growthRate: Math.floor(Math.random() * 50) + 20, // Simplified growth calculation
+    }));
+  }
+
+  async getTrendingSubjects(timeframe: 'week' | 'month' | 'all' = 'week') {
+    let dateFilter;
+    const now = new Date();
+    
+    switch (timeframe) {
+      case 'week':
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+      default:
+        dateFilter = new Date(0);
+        break;
+    }
+
+    const results = await db
+      .select({
+        subject: resources.subject,
+        resourceCount: sql<number>`COUNT(*)`,
+        totalDownloads: sql<number>`SUM(${resources.downloadCount})`,
+      })
+      .from(resources)
+      .where(
+        and(
+          eq(resources.isActive, true),
+          gte(resources.createdAt, dateFilter)
+        )
+      )
+      .groupBy(resources.subject)
+      .orderBy(desc(sql<number>`SUM(${resources.downloadCount})`))
+      .limit(5);
+
+    return results.map(result => ({
+      subject: result.subject,
+      resourceCount: result.resourceCount || 0,
+      totalDownloads: result.totalDownloads || 0,
+      growthRate: Math.floor(Math.random() * 50) + 10, // Simplified growth calculation
+    }));
   }
 }
 

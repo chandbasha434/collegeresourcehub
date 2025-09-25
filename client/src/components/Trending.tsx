@@ -13,7 +13,6 @@ interface TrendingResource {
   subject: string;
   fileType: string;
   downloadCount: number;
-  viewCount: number;
   averageRating: number;
   ratingCount: number;
   uploadedAt: string;
@@ -36,72 +35,28 @@ interface TrendingSubject {
 export default function Trending() {
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'all'>('week');
 
-  // Mock trending resources data
-  const mockTrendingResources: TrendingResource[] = [
-    {
-      id: "1",
-      title: "Advanced Calculus Study Guide",
-      description: "Comprehensive guide covering limits, derivatives, and integrals",
-      subject: "Mathematics",
-      fileType: "PDF",
-      downloadCount: 245,
-      viewCount: 432,
-      averageRating: 4.8,
-      ratingCount: 34,
-      uploadedAt: "2024-09-15",
-      uploader: { username: "math_wizard", firstName: "Sarah", lastName: "Johnson" },
-      trendingScore: 89,
-      growthRate: 156
-    },
-    {
-      id: "2", 
-      title: "Data Structures & Algorithms Cheat Sheet",
-      description: "Quick reference for common algorithms and data structures",
-      subject: "Computer Science",
-      fileType: "PDF",
-      downloadCount: 189,
-      viewCount: 367,
-      averageRating: 4.6,
-      ratingCount: 28,
-      uploadedAt: "2024-09-18",
-      uploader: { username: "cs_guru", firstName: "Michael", lastName: "Rodriguez" },
-      trendingScore: 82,
-      growthRate: 134
-    },
-    {
-      id: "3",
-      title: "Organic Chemistry Reactions Map",
-      description: "Visual guide to major organic chemistry reactions and mechanisms",
-      subject: "Chemistry", 
-      fileType: "PDF",
-      downloadCount: 167,
-      viewCount: 298,
-      averageRating: 4.7,
-      ratingCount: 22,
-      uploadedAt: "2024-09-20",
-      uploader: { username: "chem_master", firstName: "Emma", lastName: "Wilson" },
-      trendingScore: 76,
-      growthRate: 112
-    }
-  ];
-
-  // Mock trending subjects data
-  const mockTrendingSubjects: TrendingSubject[] = [
-    { subject: "Mathematics", resourceCount: 12, totalDownloads: 456, growthRate: 89 },
-    { subject: "Computer Science", resourceCount: 8, totalDownloads: 342, growthRate: 76 },
-    { subject: "Chemistry", resourceCount: 6, totalDownloads: 234, growthRate: 54 },
-    { subject: "Physics", resourceCount: 4, totalDownloads: 178, growthRate: 43 },
-    { subject: "Biology", resourceCount: 3, totalDownloads: 123, growthRate: 32 }
-  ];
-
   const { data: trendingResources, isLoading: resourcesLoading } = useQuery({
     queryKey: ['/api/trending/resources', timeframe],
-    queryFn: () => Promise.resolve(mockTrendingResources),
+    queryFn: async () => {
+      const params = new URLSearchParams({ timeframe });
+      const response = await fetch(`/api/trending/resources?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch trending resources');
+      }
+      return response.json();
+    },
   });
 
   const { data: trendingSubjects, isLoading: subjectsLoading } = useQuery({
     queryKey: ['/api/trending/subjects', timeframe],
-    queryFn: () => Promise.resolve(mockTrendingSubjects),
+    queryFn: async () => {
+      const params = new URLSearchParams({ timeframe });
+      const response = await fetch(`/api/trending/subjects?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch trending subjects');
+      }
+      return response.json();
+    },
   });
 
   const getUploaderDisplayName = (uploader: any) => {
@@ -189,7 +144,7 @@ export default function Trending() {
                 </div>
               ) : trendingResources && trendingResources.length > 0 ? (
                 <div className="space-y-4">
-                  {trendingResources.map((resource, index) => (
+                  {trendingResources.map((resource: TrendingResource, index: number) => (
                     <div 
                       key={resource.id} 
                       className="p-4 border rounded-lg hover-elevate cursor-pointer"
@@ -234,10 +189,6 @@ export default function Trending() {
                           <span className="flex items-center gap-1">
                             <Download className="h-3 w-3" />
                             {resource.downloadCount}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {resource.viewCount}
                           </span>
                           <span className="flex items-center gap-1">
                             <Star className="h-3 w-3 text-yellow-500" />
@@ -286,7 +237,7 @@ export default function Trending() {
                 </div>
               ) : trendingSubjects && trendingSubjects.length > 0 ? (
                 <div className="space-y-3">
-                  {trendingSubjects.map((subject, index) => (
+                  {trendingSubjects.map((subject: TrendingSubject, index: number) => (
                     <div 
                       key={subject.subject} 
                       className="flex items-center justify-between py-2 hover-elevate cursor-pointer p-2 rounded-md -m-2"
@@ -324,22 +275,12 @@ export default function Trending() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Views</span>
-                <span className="text-sm font-medium">
-                  {resourcesLoading ? (
-                    <Skeleton className="h-4 w-16" />
-                  ) : (
-                    trendingResources?.reduce((sum, r) => sum + r.viewCount, 0).toLocaleString()
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Total Downloads</span>
                 <span className="text-sm font-medium">
                   {resourcesLoading ? (
                     <Skeleton className="h-4 w-16" />
                   ) : (
-                    trendingResources?.reduce((sum, r) => sum + r.downloadCount, 0).toLocaleString()
+                    trendingResources?.reduce((sum: number, r: TrendingResource) => sum + r.downloadCount, 0).toLocaleString()
                   )}
                 </span>
               </div>
@@ -352,7 +293,7 @@ export default function Trending() {
                     <>
                       <Star className="h-3 w-3 text-yellow-500" />
                       {trendingResources && trendingResources.length > 0 ? (
-                        trendingResources.reduce((sum, r) => sum + r.averageRating, 0) / 
+                        trendingResources.reduce((sum: number, r: TrendingResource) => sum + r.averageRating, 0) / 
                         trendingResources.length
                       ).toFixed(1) : "0.0"}
                     </>
