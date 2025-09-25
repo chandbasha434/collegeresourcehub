@@ -637,6 +637,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/contributors - Get top contributors
+  app.get('/api/contributors', async (req, res) => {
+    try {
+      const contributors = await storage.getTopContributors();
+      res.json(contributors);
+    } catch (error) {
+      console.error("Error fetching contributors:", error);
+      res.status(500).json({ message: "Failed to fetch contributors" });
+    }
+  });
+
   // GET /api/users/me/stats - Get user stats (protected)
   app.get('/api/users/me/stats', isAuthenticated, async (req: any, res) => {
     try {

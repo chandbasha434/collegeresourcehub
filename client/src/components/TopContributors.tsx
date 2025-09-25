@@ -7,10 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 
 interface ContributorStats {
   id: string;
-  username: string;
+  username?: string;
   firstName?: string;
   lastName?: string;
-  email: string;
   resourceCount: number;
   totalDownloads: number;
   averageRating: number;
@@ -18,48 +17,14 @@ interface ContributorStats {
 }
 
 export default function TopContributors() {
-  // Mock data for now - in a real app this would fetch from API
-  const mockContributors: ContributorStats[] = [
-    {
-      id: "1",
-      username: "study_master",
-      firstName: "Alex",
-      lastName: "Chen",
-      email: "alex@example.com",
-      resourceCount: 47,
-      totalDownloads: 1250,
-      averageRating: 4.8,
-      joinedAt: "2024-01-15"
-    },
-    {
-      id: "2", 
-      username: "math_wizard",
-      firstName: "Sarah",
-      lastName: "Johnson",
-      email: "sarah@example.com",
-      resourceCount: 32,
-      totalDownloads: 890,
-      averageRating: 4.6,
-      joinedAt: "2024-02-20"
-    },
-    {
-      id: "3",
-      username: "cs_guru",
-      firstName: "Michael",
-      lastName: "Rodriguez",
-      email: "michael@example.com", 
-      resourceCount: 28,
-      totalDownloads: 675,
-      averageRating: 4.7,
-      joinedAt: "2024-03-10"
-    }
-  ];
-
   const { data: contributors, isLoading } = useQuery({
     queryKey: ['/api/contributors'],
-    queryFn: () => {
-      // Simulate API call - replace with real API endpoint
-      return Promise.resolve(mockContributors);
+    queryFn: async () => {
+      const res = await fetch('/api/contributors');
+      if (!res.ok) {
+        throw new Error(`Failed to fetch contributors: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
     },
   });
 
@@ -116,7 +81,7 @@ export default function TopContributors() {
               {isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                contributors?.reduce((sum, c) => sum + c.resourceCount, 0) || 0
+                contributors?.reduce((sum: number, c: ContributorStats) => sum + c.resourceCount, 0) || 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -135,7 +100,7 @@ export default function TopContributors() {
               {isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                contributors?.reduce((sum, c) => sum + c.totalDownloads, 0).toLocaleString() || 0
+                contributors?.reduce((sum: number, c: ContributorStats) => sum + c.totalDownloads, 0).toLocaleString() || 0
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -175,7 +140,7 @@ export default function TopContributors() {
             </div>
           ) : contributors && contributors.length > 0 ? (
             <div className="space-y-4">
-              {contributors.map((contributor, index) => (
+              {contributors.map((contributor: ContributorStats, index: number) => (
                 <div 
                   key={contributor.id} 
                   className="flex items-center space-x-4 py-4 border-b last:border-b-0"

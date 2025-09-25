@@ -122,6 +122,18 @@ export interface IStorage {
     activeUsers: number;
     inactiveResources: number;
   }>;
+  
+  // Contributors operations
+  getTopContributors(): Promise<{
+    id: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    resourceCount: number;
+    totalDownloads: number;
+    averageRating: number;
+    joinedAt: string;
+  }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -604,6 +616,59 @@ export class DatabaseStorage implements IStorage {
         activeUsers: 0,
         inactiveResources: 0
       };
+    }
+  }
+
+  // Contributors operations
+  async getTopContributors(): Promise<{
+    id: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    resourceCount: number;
+    totalDownloads: number;
+    averageRating: number;
+    joinedAt: string;
+  }[]> {
+    try {
+      const contributors = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          resourceCount: sql<number>`COUNT(${resources.id})`,
+          totalDownloads: sql<number>`COALESCE(SUM(${resources.downloadCount}), 0)`,
+          averageRating: sql<number>`COALESCE(AVG(${resources.averageRating}), 0)`,
+          joinedAt: users.createdAt,
+        })
+        .from(users)
+        .leftJoin(resources, and(
+          eq(users.id, resources.uploadedById),
+          eq(resources.isActive, true)
+        ))
+        .groupBy(users.id, users.username, users.firstName, users.lastName, users.createdAt)
+        .orderBy(
+          sql`COUNT(${resources.id}) DESC`,
+          sql`COALESCE(SUM(${resources.downloadCount}), 0) DESC`,
+          sql`COALESCE(AVG(${resources.averageRating}), 0) DESC`
+        );
+
+      return contributors
+        .filter(contributor => contributor.resourceCount > 0) // Only show users with contributions
+        .map(contributor => ({
+          id: contributor.id,
+          username: contributor.username || undefined,
+          firstName: contributor.firstName || undefined,
+          lastName: contributor.lastName || undefined,
+          resourceCount: contributor.resourceCount || 0,
+          totalDownloads: contributor.totalDownloads || 0,
+          averageRating: Number((contributor.averageRating || 0).toFixed(2)),
+          joinedAt: contributor.joinedAt?.toISOString() || new Date().toISOString(),
+        }));
+    } catch (error) {
+      console.error('Error getting top contributors:', error);
+      return [];
     }
   }
 
